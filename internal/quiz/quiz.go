@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"quiz/internal/reader"
 	"quiz/internal/scanner"
+	"quiz/internal/timer"
 )
 
 type quiz struct {
 	reader.Reader
 	scanner.Scanner
+	timer.Timer
 	*counter
 }
 
@@ -18,15 +20,17 @@ type counter struct {
 	totalQuestions int
 }
 
-func New(reader reader.Reader, scanner scanner.Scanner) *quiz {
+func New(reader reader.Reader, scanner scanner.Scanner, timer timer.Timer) *quiz {
 	return &quiz{
 		Reader:  reader,
 		Scanner: scanner,
+		Timer:   timer,
 		counter: &counter{},
 	}
 }
 
 func (q *quiz) ReadQuiz(ctx context.Context) error {
+	go q.Wait(ctx)
 	for {
 		line, err := q.Reader.ReadLine(ctx)
 		if err == reader.ErrEndOfFile {
@@ -56,6 +60,7 @@ func (q *quiz) ReadQuiz(ctx context.Context) error {
 
 		fmt.Printf("\n\n")
 	}
+	q.Timer.Finish(ctx)
 	fmt.Println("total questions --->", q.totalQuestions)
 	fmt.Println("correct answers --->", q.correctAnswers)
 	return nil

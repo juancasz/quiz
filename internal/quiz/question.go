@@ -1,6 +1,9 @@
 package quiz
 
-import "context"
+import (
+	"context"
+	"strings"
+)
 
 type question struct {
 	question string
@@ -25,5 +28,5 @@ func validateLine(ctx context.Context, line []string) error {
 }
 
 func (q *question) IsAnswerCorrect(ctx context.Context, userAnswer string) bool {
-	return q.answer == userAnswer
+	return strings.EqualFold(q.answer, userAnswer)
 }

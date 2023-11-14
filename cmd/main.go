@@ -28,7 +28,7 @@ func main() {
 	time := timer.New(secondsQuiz)
 	quizManager := quiz.New(read, scan, time)
 
-	if err = quizManager.ReadQuiz(context.Background()); err != nil {
+	if err = quizManager.Read(context.Background()); err != nil {
 		log.Fatal(err)
 	}
 }

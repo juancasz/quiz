@@ -3,6 +3,7 @@ package scanner
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 type Scanner interface {
@@ -20,5 +21,5 @@ func (s *scanner) ReadInput(ctx context.Context) (string, error) {
 	if _, err := fmt.Scanln(&input); err != nil {
 		return "", err
 	}
-	return input, nil
+	return strings.Trim(input, " "), nil
 }

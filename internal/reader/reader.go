@@ -13,6 +13,7 @@ type Reader interface {
 
 type reader struct {
 	*csv.Reader
+	*os.File
 }
 
 func New(path string) (*reader, error) {
@@ -22,12 +23,14 @@ func New(path string) (*reader, error) {
 	}
 	return &reader{
 		Reader: csv.NewReader(file),
+		File:   file,
 	}, nil
 }
 
 func (r *reader) ReadLine(ctx context.Context) ([]string, error) {
 	record, err := r.Reader.Read()
 	if err == io.EOF {
+		r.File.Close()
 		return nil, ErrEndOfFile
 	}
 	return record, nil

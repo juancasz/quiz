@@ -8,12 +8,12 @@ import (
 	"quiz/internal/reader"
 	"quiz/internal/scanner"
 	"quiz/internal/timer"
-	"strconv"
 )
 
 func main() {
 	path := flag.String("path", "", "path csv quiz file")
-	seconds := flag.String("seconds", "30", "seconds to finish quiz")
+	seconds := flag.Int("seconds", 30, "seconds to finish quiz")
+	shuffle := flag.Bool("shuffle", false, "shuffle the questions randomly")
 	flag.Parse()
 
 	read, err := reader.New(*path)
@@ -21,12 +21,8 @@ func main() {
 		log.Fatal(err)
 	}
 	scan := scanner.New()
-	secondsQuiz, err := strconv.Atoi(*seconds)
-	if err != nil {
-		log.Fatal(err)
-	}
-	time := timer.New(secondsQuiz)
-	quizManager := quiz.New(read, scan, time)
+	time := timer.New(*seconds)
+	quizManager := quiz.New(read, scan, time, *shuffle)
 
 	if err = quizManager.Read(context.Background()); err != nil {
 		log.Fatal(err)

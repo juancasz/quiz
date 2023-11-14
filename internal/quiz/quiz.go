@@ -3,6 +3,7 @@ package quiz
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"quiz/internal/reader"
 	"quiz/internal/scanner"
 	"quiz/internal/timer"
@@ -12,7 +13,8 @@ type quiz struct {
 	reader.Reader
 	scanner.Scanner
 	timer.Timer
-	questions []question
+	questions   []question
+	shuffleFlag bool
 	*counter
 	chanErr           chan error
 	chanCorrectAnswer chan struct{}
@@ -23,11 +25,12 @@ type counter struct {
 	totalQuestions int
 }
 
-func New(reader reader.Reader, scanner scanner.Scanner, timer timer.Timer) *quiz {
+func New(reader reader.Reader, scanner scanner.Scanner, timer timer.Timer, shuffle bool) *quiz {
 	return &quiz{
 		Reader:            reader,
 		Scanner:           scanner,
 		Timer:             timer,
+		shuffleFlag:       shuffle,
 		counter:           &counter{},
 		chanErr:           make(chan error),
 		chanCorrectAnswer: make(chan struct{}),
@@ -37,6 +40,9 @@ func New(reader reader.Reader, scanner scanner.Scanner, timer timer.Timer) *quiz
 func (q *quiz) Read(ctx context.Context) error {
 	if err := q.firstRead(ctx); err != nil {
 		return err
+	}
+	if q.shuffleFlag {
+		q.shuffle(ctx)
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -69,6 +75,13 @@ func (q *quiz) firstRead(ctx context.Context) error {
 		q.counter.totalQuestions += 1
 	}
 	return nil
+}
+
+func (q *quiz) shuffle(ctx context.Context) {
+	for i := len(q.questions) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		q.questions[i], q.questions[j] = q.questions[j], q.questions[i]
+	}
 }
 
 func (q *quiz) solveQuiz(ctx context.Context) error {

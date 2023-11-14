@@ -20,9 +20,6 @@ type timer struct {
 }
 
 func New(seconds int) *timer {
-	if seconds == 0 {
-		seconds = 30
-	}
 	return &timer{
 		Ticker: time.NewTicker(time.Duration(seconds) * time.Second),
 		done:   make(chan struct{}, 1),

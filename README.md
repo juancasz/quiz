@@ -1,6 +1,11 @@
 ## Quiz
 My solutions to https://github.com/gophercises/quiz
 
+## Index
+- [Usage](#usage)
+- [Build](#build)
+- [Tests](#tests)
+
 ### Usage
 ```bash
 Usage of ./bin/quiz:
@@ -24,5 +29,9 @@ To build new binary after changing code:
 make build
 ```
 
-### TO DO
-- Add unit tests
+### Tests
+To run tests:
+
+```bash
+make tests
+```

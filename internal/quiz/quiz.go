@@ -105,7 +105,6 @@ func (q *quiz) solveQuiz(ctx context.Context) error {
 			fmt.Printf("\n\n")
 		}
 	}
-	q.Timer.Finish(ctx)
 	return nil
 }
 

@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"quiz/internal/reader"
+	"quiz/internal/timer"
 	"reflect"
+	"sync"
 	"testing"
+	"time"
 )
 
 type mockReader struct {
@@ -57,12 +60,18 @@ func TestFirstRead(t *testing.T) {
 func TestShuffle(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
-	q := &quiz{
-		questions: []question{
-			{"Question 1", "Answer 1"},
-			{"Question 2", "Answer 2"},
-			{"Question 3", "Answer 3"},
-		},
+	q := New(nil, nil, nil, true)
+	q.questions = []question{
+		{"Question 1", "Answer 1"},
+		{"Question 2", "Answer 2"},
+		{"Question 3", "Answer 3"},
+		{"Question 4", "Answer 4"},
+		{"Question 5", "Answer 5"},
+		{"Question 6", "Answer 6"},
+		{"Question 7", "Answer 7"},
+		{"Question 8", "Answer 8"},
+		{"Question 9", "Answer 9"},
+		{"Question 10", "Answer 10"},
 	}
 	originalQuestions := make([]question, len(q.questions))
 	copy(originalQuestions, q.questions)
@@ -106,23 +115,166 @@ func TestSolveQuiz(t *testing.T) {
 		{"Question 3", "Answer 3"},
 	}
 
-	// Start a goroutine to receive from the chanCorrectAnswer channel
+	// Start a goroutine to receive from the chanCorrectAnswer channel and error channel
 	correctAnswers := 0
+	var wg sync.WaitGroup
+	var errQuiz error
+	wg.Add(1)
 	go func() {
 		for {
-			<-q.chanCorrectAnswer
-			correctAnswers++
+			select {
+			case _, ok := <-q.chanCorrectAnswer:
+				if ok {
+					correctAnswers += 1
+				} else {
+					q.chanCorrectAnswer = nil
+				}
+			case err, ok := <-q.chanErr:
+				if ok {
+					errQuiz = err
+				} else {
+					q.chanErr = nil
+				}
+			}
+
+			if (q.chanCorrectAnswer == nil && q.chanErr == nil) || errQuiz != nil {
+				break
+			}
 		}
+		wg.Done()
 	}()
 
 	// Act
-	err := q.solveQuiz(ctx)
+	q.solveQuiz(ctx)
+	wg.Wait()
+
+	// Assert
+	if errQuiz != nil {
+		t.Fatalf("Unexpected error: %v", errQuiz)
+	}
+	if len(mockScanner.Inputs) != correctAnswers {
+		t.Fatalf("Expected %d correct answers, but got %d", len(mockScanner.Inputs), len(q.chanCorrectAnswer))
+	}
+}
+
+type mockTimer struct {
+	TickChan chan time.Time
+}
+
+func (m *mockTimer) Tick(ctx context.Context) timer.Tick {
+	return m.TickChan
+}
+
+func TestWait_CorrectAnswer(t *testing.T) {
+	// Arrange
+	ctx := context.Background()
+
+	mockTimerTest := &mockTimer{
+		TickChan: make(chan time.Time),
+	}
+	q := New(nil, nil, mockTimerTest, false)
+
+	// Act
+	var err error
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		err = q.wait(ctx)
+		wg.Done()
+	}()
+
+	// Send a value to the chanCorrectAnswer channel
+	q.chanCorrectAnswer <- struct{}{}
+	close(q.chanCorrectAnswer)
+	close(q.chanErr)
+	wg.Wait()
 
 	// Assert
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if len(mockScanner.Inputs) != correctAnswers {
-		t.Fatalf("Expected %d correct answers, but got %d", len(mockScanner.Inputs), len(q.chanCorrectAnswer))
+	if q.counter.correctAnswers != 1 {
+		t.Fatalf("Expected 1 correct answer, but got %d", q.counter.correctAnswers)
+	}
+}
+
+func TestWait_Error(t *testing.T) {
+	// Arrange
+	ctx := context.Background()
+
+	mockTimerTest := &mockTimer{
+		TickChan: make(chan time.Time),
+	}
+	q := New(nil, nil, mockTimerTest, false)
+
+	// Act
+	var err error
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		err = q.wait(ctx)
+		wg.Done()
+	}()
+
+	// Send an error to the chanErr channel
+	q.chanErr <- errors.New("test error")
+	close(q.chanCorrectAnswer)
+	close(q.chanErr)
+	wg.Wait()
+
+	// Assert
+	if err == nil || err.Error() != "test error" {
+		t.Fatalf("Expected error 'test error', but got: %v", err)
+	}
+}
+
+func TestWait_Tick(t *testing.T) {
+	// Arrange
+	ctx := context.Background()
+
+	mockTimerTest := &mockTimer{
+		TickChan: make(chan time.Time),
+	}
+	q := New(nil, nil, mockTimerTest, false)
+
+	// Act
+	var err error
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		err = q.wait(ctx)
+		wg.Done()
+	}()
+
+	// Send a value to the Tick channel
+	mockTimerTest.TickChan <- time.Now()
+	close(q.chanCorrectAnswer)
+	close(q.chanErr)
+	wg.Wait()
+
+	// Assert
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+}
+
+func TestRead(t *testing.T) {
+	mockReaderTest := &mockReader{
+		Lines: [][]string{
+			{"Question 1", "Answer 1"},
+			{"Question 2", "Answer 2"},
+			{"Question 3", "Answer 3"},
+		},
+	}
+	mockScannerTest := &mockScanner{
+		Inputs: []string{"Answer 1", "Answer 2", "Answer 3"},
+	}
+	mockTimerTest := &mockTimer{
+		TickChan: make(chan time.Time),
+	}
+	q := New(mockReaderTest, mockScannerTest, mockTimerTest, true)
+	err := q.Read(context.Background())
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
 	}
 }

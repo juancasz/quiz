@@ -20,15 +20,3 @@ func TestTick(t *testing.T) {
 		t.Error("Did not receive tick or done after 2 seconds")
 	}
 }
-
-func TestFinishAndDone(t *testing.T) {
-	timerTest := timer.New(1)
-	ctx := context.Background()
-	go timerTest.Finish(ctx)
-	select {
-	case <-timerTest.Done(ctx):
-		t.Log("Received done")
-	case <-time.After(1 * time.Second):
-		t.Error("Did not receive done after 1 second")
-	}
-}

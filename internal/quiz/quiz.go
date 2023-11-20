@@ -33,7 +33,7 @@ func New(reader reader.Reader, scanner scanner.Scanner, timer timer.Timer, shuff
 		shuffleFlag:       shuffle,
 		counter:           &counter{},
 		chanErr:           make(chan error),
-		chanCorrectAnswer: make(chan struct{}),
+		chanCorrectAnswer: make(chan struct{}, 1),
 	}
 }
 
@@ -46,14 +46,11 @@ func (q *quiz) Read(ctx context.Context) error {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	go func(ctx context.Context) {
-		if err := q.solveQuiz(ctx); err != nil {
-			q.chanErr <- err
-		}
-	}(ctx)
+	go q.solveQuiz(ctx)
 	if err := q.wait(ctx); err != nil {
 		return err
 	}
+	q.results(ctx)
 	return nil
 }
 
@@ -84,18 +81,18 @@ func (q *quiz) shuffle(ctx context.Context) {
 	}
 }
 
-func (q *quiz) solveQuiz(ctx context.Context) error {
+func (q *quiz) solveQuiz(ctx context.Context) {
 	for _, question := range q.questions {
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		default:
 			fmt.Println("question: ", question.question)
 			fmt.Printf("enter your answer and press enter: ")
 
 			userAnswer, err := q.Scanner.ReadInput(ctx)
 			if err != nil {
-				return err
+				q.chanErr <- err
 			}
 
 			if question.IsAnswerCorrect(ctx, userAnswer) {
@@ -105,27 +102,37 @@ func (q *quiz) solveQuiz(ctx context.Context) error {
 			fmt.Printf("\n\n")
 		}
 	}
-	q.Timer.Finish(ctx)
-	return nil
+	close(q.chanErr)
+	close(q.chanCorrectAnswer)
 }
 
 func (q *quiz) wait(ctx context.Context) error {
 	for {
 		select {
-		case <-q.chanCorrectAnswer:
-			q.counter.correctAnswers += 1
-		case err := <-q.chanErr:
-			return err
-		case <-q.Done(ctx):
-			fmt.Printf("\n\nall answers sent\n\n")
-			q.results(ctx)
-			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		case _, ok := <-q.chanCorrectAnswer:
+			if ok {
+				q.counter.correctAnswers += 1
+			} else {
+				q.chanCorrectAnswer = nil
+			}
+		case err, ok := <-q.chanErr:
+			if ok {
+				return err
+			} else {
+				q.chanErr = nil
+			}
 		case <-q.Timer.Tick(ctx):
 			fmt.Printf("\n\ntime completed\n\n")
-			q.results(ctx)
 			return nil
 		}
+
+		if q.chanCorrectAnswer == nil && q.chanErr == nil {
+			break
+		}
 	}
+	return nil
 }
 
 func (q *quiz) results(ctx context.Context) {

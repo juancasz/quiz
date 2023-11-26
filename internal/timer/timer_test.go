@@ -10,6 +10,7 @@ import (
 func TestTick(t *testing.T) {
 	timerTest := timer.New(1)
 	ctx := context.Background()
+	t.Errorf("error test tick ----------------")
 	// Wait for a tick
 	select {
 	case <-timerTest.Tick(ctx):

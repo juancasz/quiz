@@ -29,3 +29,8 @@ jobs:
           go-version: '1.21.x'
       - name: Build binary
         run: GOOS=linux GOARCH=amd64 go build -C cmd -o bin/quiz
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: quiz-binary
+          path: bin/quiz

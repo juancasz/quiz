@@ -29,8 +29,6 @@ jobs:
           go-version: '1.21.x'
       - name: Build binary
         run: GOOS=linux GOARCH=amd64 go build -C cmd -o bin/quiz
-      - name: Setup Git
-        uses: actions/setup-git@v4
       - name: Commit and push binary
         uses: actions/github-script@v5
         with:

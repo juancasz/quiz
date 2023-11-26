@@ -14,6 +14,6 @@ jobs:
         with:
           go-version: '1.21.x'
       - name: Install dependencies
-        run: go get .
+        run: go mod download
       - name: Run tests
         run: go test ./... -coverprofile cover.out && go tool cover -func cover.out

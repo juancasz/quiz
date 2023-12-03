@@ -61,6 +61,10 @@ jobs:
         with:
           body_path: ".github/RELEASE-TEMPLATE.md"
           draft: true
+<<<<<<< HEAD
+          files: cmd/${{env.BINARY_NAME}}
+=======
           files: ${{env.BINARY_NAME}}
+>>>>>>> 9a19558842cf11e4f036d47fff20edcd4b67c6ce
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

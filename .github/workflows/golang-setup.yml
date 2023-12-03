@@ -25,8 +25,8 @@ jobs:
       matrix:
         goosarch:
           - 'linux/amd64'
-          - 'darwin/amd64'
-          - 'windows/amd64'
+          # - 'darwin/amd64'
+          # - 'windows/amd64'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -47,7 +47,7 @@ jobs:
           echo "GOARCH=$GOARCH" >> $GITHUB_ENV
       - name: Build
         run: |
-          go build -C cmd -o "$BINARY_NAME" -v
+          go build -C cmd -o ../$BINARY_NAME -v
       - name: List files
         run: ls -la
       - name: Release Notes

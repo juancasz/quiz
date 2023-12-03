@@ -2,7 +2,7 @@ name: golang-setup
 
 on:
   push:
-    branches: [ "master", "feature/CI-CD" ]
+    branches: [ "master" ]
 
 permissions:
   contents: write
@@ -28,8 +28,8 @@ jobs:
       matrix:
         goosarch:
           - 'linux/amd64'
-          # - 'darwin/amd64'
-          # - 'windows/amd64'
+          - 'darwin/amd64'
+          - 'windows/amd64'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -52,7 +52,7 @@ jobs:
         run: |
           go build -C cmd -o "$BINARY_NAME" -v
       - name: List files
-        run: ls -la
+        run: ls -la cmd
       - name: Release Notes
         run:
           git log $(git describe HEAD~ --tags --abbrev=0)..HEAD --pretty='format:* %h %s%n * %an <%ae>' --no-merges >> ".github/RELEASE-TEMPLATE.md"

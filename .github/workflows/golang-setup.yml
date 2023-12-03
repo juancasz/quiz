@@ -48,7 +48,8 @@ jobs:
       - name: Build
         run: |
           go build -C cmd -o "$BINARY_NAME" -v
-          BINARY_NAME="$(pwd)/$BINARY_NAME"
+      - name: List files
+        run: ls -la
       - name: Release Notes
         run:
           git log $(git describe HEAD~ --tags --abbrev=0)..HEAD --pretty='format:* %h %s%n * %an <%ae>' --no-merges >> ".github/RELEASE-TEMPLATE.md"

@@ -47,7 +47,7 @@ jobs:
           echo "GOARCH=$GOARCH" >> $GITHUB_ENV
       - name: Build
         run: |
-          go build -C cmd -o "$(pwd)/$BINARY_NAME" -v
+          go build -C cmd -o "$BINARY_NAME" -v
           BINARY_NAME="$(pwd)/$BINARY_NAME"
       - name: Release Notes
         run:
